@@ -13,5 +13,8 @@ type JavaMethod struct {
 	Name       string
 	Modifiers  uint16
 	Descriptor string
+	// The offset in the original class file at which the code of this class starts
+	// This is computed at class read time by finding the Code attribute in the method's attribute list.
+	BodyOffset int
 	Body       []BytesBlock
 }

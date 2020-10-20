@@ -89,12 +89,15 @@ func (c *ClassReader) ReadClass(reader io.Reader) (*JavaClass, error) {
 		m += 8
 		for ; attrCount > 0; attrCount-- {
 			attrName := c.readStr(bytes, m)
+			attrLen := int(readInt(bytes, m+2))
+			m += 6
 			// TODO: handle more attributes
 			if attrName == "Synthetic" {
 				jclass.Methods[i].Modifiers |= ACC_SYNTHETIC
+			} else if attrName == "Code" {
+				jclass.Methods[i].BodyOffset = m
 			}
-			attrLen := int(readInt(bytes, m+2))
-			m += 6 + attrLen
+			m += attrLen
 		}
 	}
 	attrCount := int(readUnsignedShort(bytes, m))
