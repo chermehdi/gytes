@@ -18,7 +18,7 @@ func readClassFile(className string) io.Reader {
 }
 
 func TestCanReadJavaClass(t *testing.T) {
-	reader := readClassFile("testdata/Hello.class")
+	reader := readClassFile("testdata/compiled/Hello.class")
 	classReader := &ClassReader{}
 
 	jclass, err := classReader.ReadClass(reader)

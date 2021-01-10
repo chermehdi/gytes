@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 )
 
+// JClassReader is the main type to read a classfile into a `JavaClass` type.
 type JClassReader interface {
 	ReadClass(reader io.Reader) (*JavaClass, error)
 }
@@ -92,10 +93,19 @@ func (c *ClassReader) ReadClass(reader io.Reader) (*JavaClass, error) {
 			attrLen := int(readInt(bytes, m+2))
 			m += 6
 			// TODO: handle more attributes
+			fmt.Printf("Found attribute %s with length %d\n", attrName, attrLen)
 			if attrName == "Synthetic" {
 				jclass.Methods[i].Modifiers |= ACC_SYNTHETIC
 			} else if attrName == "Code" {
 				jclass.Methods[i].BodyOffset = m
+				jclass.Methods[i].MaxStack = readUnsignedShort(bytes, m)
+				jclass.Methods[i].MaxLocals = readUnsignedShort(bytes, m+2)
+				codeLen := readUnsignedInt(bytes, m+4)
+				body, err := readCode(bytes, m+8, codeLen)
+				if err != nil {
+					return nil, err
+				}
+				jclass.Methods[i].Body = body
 			}
 			m += attrLen
 		}
@@ -198,4 +208,21 @@ func (c *ClassReader) readStr(b []byte, offset int) string {
 	// TODO: strings in java are UTF-8 encoded, it should be handled accordingly
 	endIndex := index + length
 	return string(b[index:endIndex])
+}
+
+// Read the code of the method
+func readCode(b []byte, offset int, length uint32) ([]BytesBlock, error) {
+	blocks := make([]BytesBlock, 0)
+	end := uint32(offset) + length
+	curBlock := NewByteBlock()
+	for i := uint32(offset); i < end; i = i + 1 {
+		// TODO: curBlock may change when dealing with labels or control flow
+		bc, err := curBlock.Add(b[i])
+		if err != nil {
+			return nil, err
+		}
+		i = i + uint32(bc.Size)
+	}
+	blocks = append(blocks, curBlock)
+	return blocks, nil
 }
