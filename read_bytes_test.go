@@ -2,7 +2,6 @@ package gytes
 
 import (
 	"bufio"
-	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"os"
@@ -18,55 +17,119 @@ func readClassFile(className string) io.Reader {
 }
 
 func TestCanReadJavaClass(t *testing.T) {
-	reader := readClassFile("testdata/compiled/Hello.class")
-	classReader := &ClassReader{}
-
-	jclass, err := classReader.ReadClass(reader)
-
+	jclass, err := readClass("testdata/compiled/Hello.class")
 	assert.Nil(t, err)
-	assert.NotNil(t, jclass)
-	assert.Equal(t, uint16(0), jclass.MinorVersion)
-	assert.True(t, 48 < jclass.MajorVersion && jclass.MajorVersion < 100)
-	assert.Equal(t, uint16(39), jclass.PoolCount)
 
-	assert.Equal(t, uint16(ACC_PUBLIC|ACC_SUPER), jclass.Access)
-	assert.Equal(t, "Hello", jclass.Name)
-	assert.Equal(t, "java/lang/Object", jclass.SuperName)
-	assert.Equal(t, []string{"java/io/Serializable"}, jclass.Interfaces)
-	assert.Equal(t, "Hello.java", jclass.SourceName)
+	expected := &JavaClass{
+		Name:         "Hello",
+		MinorVersion: 0,
+		MajorVersion: 52,
+		SuperName:    "java/lang/Object",
+		Access:       uint16(ACC_PUBLIC | ACC_SUPER),
+		Interfaces:   []string{"java/io/Serializable"},
+		SourceName:   "Hello.java",
+		Fields: []JavaField{
+			{
+				Name:       "MAGIC",
+				Modifiers:  uint16(ACC_PUBLIC | ACC_STATIC | ACC_FINAL),
+				Descriptor: "I",
+			},
+			{
+				Name:       "message",
+				Modifiers:  uint16(ACC_PRIVATE),
+				Descriptor: "Ljava/lang/String;",
+			},
+		},
+		Methods: []JavaMethod{
+			{
+				Name:       "<init>",
+				Modifiers:  uint16(ACC_PUBLIC),
+				Descriptor: "(Ljava/lang/String;)V",
+			},
+			{
+				Name:       "main",
+				Modifiers:  uint16(ACC_PUBLIC | ACC_STATIC),
+				Descriptor: "([Ljava/lang/String;)V",
+			},
+		},
+	}
 
-	// Field assertions
-	assert.Equal(t, 2, len(jclass.Fields))
-	assert.Equal(t, "MAGIC", jclass.Fields[0].Name)
-	assert.Equal(t, uint16(ACC_PUBLIC|ACC_STATIC|ACC_FINAL), jclass.Fields[0].Modifiers)
-	assert.Equal(t, "I", jclass.Fields[0].Descriptor)
-
-	assert.Equal(t, "message", jclass.Fields[1].Name)
-	assert.Equal(t, uint16(ACC_PRIVATE), jclass.Fields[1].Modifiers)
-	assert.Equal(t, "Ljava/lang/String;", jclass.Fields[1].Descriptor)
-
-	// Method assertions
-	assert.Equal(t, 2, len(jclass.Methods))
-	assert.Equal(t, "<init>", jclass.Methods[0].Name)
-	assert.Equal(t, uint16(ACC_PUBLIC), jclass.Methods[0].Modifiers)
-	assert.Equal(t, "(Ljava/lang/String;)V", jclass.Methods[0].Descriptor)
-
-	assert.Equal(t, "main", jclass.Methods[1].Name)
-	assert.Equal(t, uint16(ACC_PUBLIC|ACC_STATIC), jclass.Methods[1].Modifiers)
-	assert.Equal(t, "([Ljava/lang/String;)V", jclass.Methods[1].Descriptor)
-
-	// compiled with a recent java version
-
-	fmt.Printf("%v\n", jclass)
+	AssertClass(t, expected, jclass)
 }
 
 func TestCanReadJavaClassWithException(t *testing.T) {
-	reader := readClassFile("testdata/compiled/HelloJavaException.class")
-	classReader := &ClassReader{}
-
-	jclass, err := classReader.ReadClass(reader)
-
+	jclass, err := readClass("testdata/compiled/HelloJavaException.class")
 	assert.Nil(t, err)
 	assert.NotNil(t, jclass)
-	fmt.Printf("%v\n", jclass)
+
+	expected := &JavaClass{
+		Name:         "HelloJavaException",
+		MinorVersion: 0,
+		MajorVersion: 52,
+		SuperName:    "java/lang/Object",
+		Access:       uint16(ACC_PUBLIC | ACC_SUPER),
+		Interfaces:   []string{},
+		SourceName:   "HelloJavaException.java",
+		Fields:       []JavaField{},
+		Methods: []JavaMethod{
+			{
+				Name:       "<init>",
+				Modifiers:  0,
+				Descriptor: "()V",
+			},
+			{
+				Name:       "methodWithException",
+				Modifiers:  0,
+				Descriptor: "()V",
+				Exceptions: []string{"java/lang/Exception"},
+			},
+		},
+	}
+
+	AssertClass(t, expected, jclass)
+}
+
+func readClass(src string) (*JavaClass, error) {
+	reader := readClassFile(src)
+	classReader := &ClassReader{}
+	return classReader.ReadClass(reader)
+}
+
+func AssertClass(t *testing.T, expected, got *JavaClass) {
+	assert.NotNil(t, got)
+	assert.Equal(t, expected.Name, got.Name)
+	assert.Equal(t, expected.SuperName, got.SuperName)
+	assert.Equal(t, expected.Interfaces, got.Interfaces)
+	assert.True(t, 48 < got.MajorVersion && got.MajorVersion < 100)
+
+	assert.Equal(t, len(expected.Fields), len(got.Fields))
+	// Fields should be in the same order
+	for i := range expected.Fields {
+		AssertField(t, &expected.Fields[i], &got.Fields[i])
+	}
+
+	assert.Equal(t, len(expected.Methods), len(got.Methods))
+	// Fields should be in the same order
+	for i := range expected.Methods {
+		AssertMethod(t, &expected.Methods[i], &got.Methods[i])
+	}
+}
+
+func AssertField(t *testing.T, expected, got *JavaField) {
+	assert.Equal(t, expected.Name, got.Name)
+	assert.Equal(t, expected.Modifiers, got.Modifiers)
+	assert.Equal(t, expected.Descriptor, got.Descriptor)
+}
+
+func AssertMethod(t *testing.T, expected, got *JavaMethod) {
+	assert.Equal(t, expected.Name, got.Name)
+	assert.Equal(t, expected.Modifiers, got.Modifiers)
+	assert.Equal(t, expected.Descriptor, got.Descriptor)
+	assert.Equal(t, expected.Exceptions, got.Exceptions)
+
+	AssertCode(t, expected.Body, got.Body)
+}
+
+func AssertCode(t *testing.T, expected, got []BytesBlock) {
+	// TODO
 }
