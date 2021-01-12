@@ -59,3 +59,14 @@ func TestCanReadJavaClass(t *testing.T) {
 
 	fmt.Printf("%v\n", jclass)
 }
+
+func TestCanReadJavaClassWithException(t *testing.T) {
+	reader := readClassFile("testdata/compiled/HelloJavaException.class")
+	classReader := &ClassReader{}
+
+	jclass, err := classReader.ReadClass(reader)
+
+	assert.Nil(t, err)
+	assert.NotNil(t, jclass)
+	fmt.Printf("%v\n", jclass)
+}

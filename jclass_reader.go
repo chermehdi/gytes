@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 )
 
 // JClassReader is the main type to read a classfile into a `JavaClass` type.
@@ -93,7 +94,7 @@ func (c *ClassReader) ReadClass(reader io.Reader) (*JavaClass, error) {
 			attrLen := int(readInt(bytes, m+2))
 			m += 6
 			// TODO: handle more attributes
-			fmt.Printf("Found attribute %s with length %d\n", attrName, attrLen)
+			log.Printf("Found attribute %s with length %d\n", attrName, attrLen)
 			if attrName == "Synthetic" {
 				jclass.Methods[i].Modifiers |= ACC_SYNTHETIC
 			} else if attrName == "Code" {
@@ -106,6 +107,17 @@ func (c *ClassReader) ReadClass(reader io.Reader) (*JavaClass, error) {
 					return nil, err
 				}
 				jclass.Methods[i].Body = body
+				// at := m + 8 + int(codeLen)
+				// exceptionTableLen := readUnsignedInt(bytes, at)
+			} else if attrName == "Exceptions" {
+				exCount := readUnsignedShort(bytes, m)
+				end := m + 2 + 2*int(exCount)
+				jclass.Methods[i].Exceptions = make([]string, 0)
+				for o := m + 2; o < end; o = o + 2 {
+					// The exception should be a fully qualified class name
+					ex := c.readClass(bytes, o)
+					jclass.Methods[i].Exceptions = append(jclass.Methods[i].Exceptions, ex)
+				}
 			}
 			m += attrLen
 		}

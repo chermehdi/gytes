@@ -17,6 +17,7 @@ type JavaMethod struct {
 	Descriptor string
 	MaxStack   uint16
 	MaxLocals  uint16
+	Exceptions []string
 	// The offset in the original class file at which the code of this class starts
 	// This is computed at class read time by finding the Code attribute in the method's attribute list.
 	BodyOffset int
@@ -24,10 +25,11 @@ type JavaMethod struct {
 }
 
 func (jm JavaMethod) String() string {
-	return fmt.Sprintf("Modifiers=%d Name=%s Descriptor=%s MaxStack=%d MaxLocals=%d BytesBlock=%v", jm.Modifiers,
+	return fmt.Sprintf("Modifiers=%d Name=%s Descriptor=%s MaxStack=%d MaxLocals=%d BytesBlock=%v Exceptions=%v", jm.Modifiers,
 		jm.Name,
 		jm.Descriptor,
 		jm.MaxStack,
 		jm.MaxLocals,
-		jm.Body)
+		jm.Body,
+		jm.Exceptions)
 }
