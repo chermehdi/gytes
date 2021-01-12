@@ -79,17 +79,3 @@ func (jc *JavaClass) AddMethods(methods []JavaMethod) *JavaClass {
 func (jc *JavaClass) Write(writer io.Writer) {
 }
 
-func test() {
-	/*
-		 	NewJavaClass("com.github.chermehdi.A")
-				.SuperClass("com.cher.C")
-				.Implements("com.chermehdi.IA")
-				.AddFields(
-					{ NewJavaField("mehdi", ACC_PUBLIC | ACC_STATIC, "")},
-					{ NewJavaField("mehdi", ACC_PUBLIC | ACC_STATIC, "")},
-				)
-				.AddMethods(
-					{ NewJavaMethod("doStuff", ACC_PUBLIC, ", }
-				).Write(writer)
-	*/
-}

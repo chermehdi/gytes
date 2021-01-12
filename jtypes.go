@@ -5,6 +5,8 @@ type JType struct {
 	VMRep string
 }
 
+// All the JVM types
+// Mappings between primitive types and their corresponing VM representation
 var (
 	JBool   = JType{"boolean", "Z"}
 	JByte   = JType{"byte", "B"}
